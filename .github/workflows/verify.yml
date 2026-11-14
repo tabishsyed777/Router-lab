@@ -1,0 +1,51 @@
+name: Verify RouteLab
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Unit tests
+        run: python -m unittest discover -s tests -p test_unit.py -v
+      - name: Real container integration tests
+        run: python -m unittest discover -s tests -p test_integration.py -v
+      - name: Generate outcome evidence
+        if: always()
+        run: python -m routelab demo --skip-build --output runs/demo
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: routelab-evidence
+          path: runs/demo/
+  harbor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-harbor.txt
+      - run: python -m pip install -r requirements-harbor.txt
+      - name: Harbor oracle
+        run: |
+          harbor run --path tasks/proxy-contract --agent oracle --jobs-dir runs/harbor-oracle --n-concurrent 1
+          python -m routelab.harbor_results runs/harbor-oracle --expected 1
+      - name: Harbor no-op baseline
+        run: |
+          harbor run --path tasks/proxy-contract --agent nop --jobs-dir runs/harbor-nop --n-concurrent 1
+          python -m routelab.harbor_results runs/harbor-nop --expected 0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: routelab-harbor-results
+          path: |
+            runs/harbor-oracle/**/result.json
+            runs/harbor-nop/**/result.json
