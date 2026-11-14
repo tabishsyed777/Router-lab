@@ -1,0 +1,20 @@
+schema_version = "1.4"
+artifacts = ["/app/nginx.conf"]
+[task]
+name = "tabz/routelab-proxy-contract"
+authors = [{name = "Tabish Syed"}]
+[metadata]
+category = "Operations"
+subcategory = "http-routing"
+tags = ["nginx", "reverse-proxy", "http", "authorization"]
+[agent]
+timeout_sec = 900.0
+[verifier]
+timeout_sec = 120.0
+environment_mode = "separate"
+[environment]
+build_timeout_sec = 600.0
+cpus = 1
+memory_mb = 512
+storage_mb = 4096
+network_mode = "public"
